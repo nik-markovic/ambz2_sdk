@@ -520,8 +520,15 @@ T_APP_RESULT bt_config_app_gap_callback(uint8_t cb_type, void *p_cb_data)
     * @retval   APP_RESULT_SUCCESS  Function run successfully
     * @retval   others              Function run failed, and return number indicates the reason
     */
+#define MAX_COMMAND_LENGTH 80
+static char command_buffer[MAX_COMMAND_LENGTH];
+//extern void* log_action(char *cmd);
+extern void* log_handler(char *cmd);
+
 T_APP_RESULT bt_config_app_profile_callback(T_SERVER_ID service_id, void *p_data)
 {
+    printf("bt_config_app_profile_callback: %x\r\n", service_id);
+
     T_APP_RESULT app_result = APP_RESULT_SUCCESS;
     if (service_id == SERVICE_PROFILE_GENERAL_ID)
     {
@@ -565,7 +572,20 @@ T_APP_RESULT bt_config_app_profile_callback(T_SERVER_ID service_id, void *p_data
 						// Parse data first. (p_simp_cb_data->msg_data.write.p_value, p_simp_cb_data->msg_data.write.len)
 						// If it's a customized command, handle it here (call customized function to do specific actions)
 						// Otherwise, use BC_send_cmd to send data (BT Config command) to BT Config
-						BC_send_cmd( p_simp_cb_data->msg_data.write.p_value,  p_simp_cb_data->msg_data.write.len);
+						//const
+						uint16_t len = p_simp_cb_data->msg_data.write.len;
+						uint8_t *p_value = p_simp_cb_data->msg_data.write.p_value;
+						printf("BTCONFIG_WRITE_V1: %.*s\r\n", len, p_value);
+						if (len >= 3 && 0 == strncmp("ATW", (const char*) p_value, strlen("ATW"))) {
+                                                    printf("1\r\n");
+                                                    memcpy(command_buffer, p_value, len);
+                                                    command_buffer[len] = 0;
+
+						    log_handler(command_buffer);
+						} else {
+                                                    printf("2\r\n");
+						    BC_send_cmd( p_simp_cb_data->msg_data.write.p_value,  p_simp_cb_data->msg_data.write.len);
+						}
                     }
                     break;
                 default:
